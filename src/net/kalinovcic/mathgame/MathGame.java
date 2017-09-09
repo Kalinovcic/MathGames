@@ -10,10 +10,10 @@ public class MathGame
         
         JFrame frame = new JFrame("Igra");
         frame.add(game);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setUndecorated(true);
-        //frame.setSize(800, 600);
+        // frame.setSize(800, 600);
         frame.setVisible(true);
 
         frame.toFront();

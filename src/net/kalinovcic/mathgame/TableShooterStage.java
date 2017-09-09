@@ -27,6 +27,7 @@ public class TableShooterStage extends Stage
 
         void setX()
         {
+            int attempts = 0;
             while (true)
             {
                 boolean success = true;
@@ -40,7 +41,8 @@ public class TableShooterStage extends Stage
                         success = false;
                 }
                 
-                if (success) break;
+                attempts++;
+                if (success || attempts > 200) break;
             }
         }
         
@@ -317,10 +319,10 @@ public class TableShooterStage extends Stage
         path.addPoint(waterHX, waterHY);
         path.addPoint(waterLX, waterHY);
         path.addPoint(waterLX, waterLY);
-        for (int i = 0; i <= 50; i++)
+        for (int i = 0; i <= 25; i++)
         {
-            path.addPoint((int)(waterLX + waterW * (i / 50.0f)),
-                          (int)(waterLY + Math.sin(game.secondsSinceStart * 4.0f + i / 1.5f) * 10.0f));
+            path.addPoint((int)(waterLX + waterW * (i / 25.0f)),
+                          (int)(waterLY + Math.sin(game.secondsSinceStart * 4.0f + i / 0.75f) * 10.0f));
         }
         
         g.setColor(new Color(0x0070FF));
