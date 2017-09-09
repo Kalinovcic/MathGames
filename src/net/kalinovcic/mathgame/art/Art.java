@@ -10,8 +10,9 @@ import javax.imageio.ImageIO;
 public class Art
 {
     public static final Font FONT = loadFont("DejaVuSans-Bold.ttf");
-    
+
     public static final BufferedImage FIREWORK = loadImage("firework.png");
+    public static final BufferedImage BOAT = loadImage("boat.png");
     
     public static Font loadFont(String name)
     {

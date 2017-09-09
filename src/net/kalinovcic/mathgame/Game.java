@@ -18,7 +18,7 @@ public class Game extends Canvas
     public int height = 1080;
 
     public Random random = new Random();
-    public Stage stage = new TableShooterStage(this);
+    public Stage stage = new TableShooterStage(this); // new SumStage(this, 5813, 8346, true);
     public float secondsSinceStart = 0.0f;
     
     public Game()
