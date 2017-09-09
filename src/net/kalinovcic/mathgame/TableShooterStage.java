@@ -23,6 +23,7 @@ public class TableShooterStage extends Stage
         boolean inTable;
         boolean hit;
         boolean red;
+        boolean dead;
 
         void setX()
         {
@@ -30,7 +31,7 @@ public class TableShooterStage extends Stage
             {
                 boolean success = true;
 
-                x = game.random.nextFloat() * (game.width * 0.6f - 160) + 80;
+                x = game.random.nextFloat() * (waterHX - 160) + 80;
                 
                 int count = Math.min(fallingNumbers.size(), 3);
                 for (int i = fallingNumbers.size() - count; i < fallingNumbers.size(); i++)
@@ -46,7 +47,10 @@ public class TableShooterStage extends Stage
         void update(float dt)
         {
             y += vy * dt;
-            if (y > game.height - 10) y = game.height - 10;
+
+            if (y > waterLY) red = true;
+            if (y > game.height + 40) dead = true;
+            
             if (x > game.width) setX();
         }
         
@@ -69,10 +73,11 @@ public class TableShooterStage extends Stage
             y += vy * dt;
             for (FallingNumber number : fallingNumbers)
             {
+                if (number.red) continue;
                 if (y > number.y) continue;
-                if (Math.abs(x - number.x) > (int)Math.max(Math.ceil(Math.log10(number.number)), 1) * 25) continue;
+                if (Math.abs(x - number.x) > (int)Math.max(Math.ceil(Math.log10(number.number)), 1) * 30) continue;
                 if (Math.abs(y - number.y) > 30.0f) continue;
-                
+
                 number.hit = true;
                 dead = true;
                 break;
@@ -93,30 +98,44 @@ public class TableShooterStage extends Stage
     public List<Bullet> bullets = new ArrayList<Bullet>();
 
     private boolean[] table = new boolean[100];
+    private boolean[] tablePlacedIncorrectly = new boolean[100];
     
     public TableShooterStage(Game game)
     {
         super(game);
         this.isOpaque = true;
-        
-        for (int x = 1; x <= 10; x++)
-            for (int y = 1; y <= 10; y++)
-                if (x == 1 || y == 1 || x == 10 || y == 10)
-                    table[(x - 1) * 10 + (y - 1)] = true;
+
+        {
+            for (int x = 1; x <= 10; x++)
+                for (int y = x; y <= 10; y++)
+                {
+                    if (x == 1 || y == 1 || x == 10 || y == 10)
+                    {
+                        table[(x - 1) * 10 + (y - 1)] = true;
+                        table[(y - 1) * 10 + (x - 1)] = true;
+                    }
+                    else
+                    {
+                        FallingNumber number = new FallingNumber();
+                        number.number = x * y;
+                        number.inTable = true;
+                        numbersToDrop.add(number);
+                    }
+                }
+        }
         
         for (int i = 1; i <= 100; i++)
         {
-            if (table[i - 1]) continue;
-
             FallingNumber number = new FallingNumber();
             number.number = i;
             number.inTable = false;
             
             for (int x = 1; x <= 10; x++)
-                for (int y = 1; y <= 10; y++)
+                for (int y = x; y <= 10; y++)
                     if (x * y == number.number)
                         number.inTable = true;
             
+            if (number.inTable) continue;
             numbersToDrop.add(number);
         }
         
@@ -136,11 +155,30 @@ public class TableShooterStage extends Stage
     private float boatX = 150.0f;
     private float boatRotationTime = 0;
     private boolean boatFacingRight = true;
+
+    private int waterLX;
+    private int waterLY;
+    private int waterHX;
+    private int waterHY;
+    private int waterW;
+    private int sideW;
+    
+    private boolean dragging = false;
+    private int draggingNumber;
+    private int draggingTableX;
+    private int draggingTableY;
     
     @Override
     public void update(float dt)
     {
-        float numberSpawnRate = 2;
+        waterLX = 0;
+        waterLY = (int)(game.height * 0.7);
+        waterHX = (int)(game.width * 0.6);
+        waterHY = game.height;
+        waterW = waterHX - waterLX;
+        sideW = game.width - waterW;
+        
+        float numberSpawnRate = 2.0f;
         
         numberSpawnCounter += dt;
         while (numberSpawnCounter >= numberSpawnRate)
@@ -178,6 +216,34 @@ public class TableShooterStage extends Stage
         {
             FallingNumber number = fallingNumbers.get(i);
             number.update(dt);
+
+            boolean draggingThisNumber = false;
+            if (!dragging && !number.red && Input.isLeftMousePressed())
+            {
+                float width = (float)Math.max(Math.ceil(Math.log10(number.number)), 1) * 32;
+                float height = 50;
+                float x = number.x - width * 0.5f;
+                float y = number.y - height;
+
+                float mx = Input.mouseX;
+                float my = Input.mouseY;
+                if (mx >= x && mx < x + width &&
+                    my >= y && my < y + height)
+                {
+                    if (!number.inTable)
+                    {
+                        number.red = true;
+                    }
+                    else
+                    {
+                        number.dead = true;
+                        draggingThisNumber = true;
+                        dragging = true;
+                        draggingNumber = number.number;
+                    }
+                }
+            }
+            
             if (number.hit)
             {
                 if (number.inTable)
@@ -187,22 +253,39 @@ public class TableShooterStage extends Stage
                 }
                 else
                 {
-                    int last = fallingNumbers.size() - 1;
-                    fallingNumbers.set(i, fallingNumbers.get(last));
-                    fallingNumbers.remove(last);
-                    i--;
+                    number.dead = true;
                 }
             }
+            
+            if (number.dead)
+            {
+                if (number.inTable && !draggingThisNumber)
+                {
+                    FallingNumber newNumber = new FallingNumber();
+                    newNumber.number = number.number;
+                    newNumber.inTable = number.inTable;
+                    numbersToDrop.add(0, newNumber);
+                }
+                
+                int last = fallingNumbers.size() - 1;
+                fallingNumbers.set(i, fallingNumbers.get(last));
+                fallingNumbers.remove(last);
+                i--;
+            }
         }
+
+        int columnSize = sideW / 11;
+        draggingTableX = (Input.mouseX - waterHX) / columnSize;
+        draggingTableY = (int)(Input.mouseY - columnSize * 0.2f) / columnSize;
 
         float move = 0.0f;
         if (Input.isKeyDown(KeyEvent.VK_LEFT )) move = -1.0f;
         if (Input.isKeyDown(KeyEvent.VK_RIGHT)) move =  1.0f;
-        if (Input.isKeyPressed(KeyEvent.VK_SPACE))
+        if (Input.isKeyPressed(KeyEvent.VK_SPACE) || Input.isKeyPressed(KeyEvent.VK_UP))
         {
             Bullet bullet = new Bullet();
             bullet.x = boatX + 100;
-            bullet.y = game.height * 0.7f - 100;
+            bullet.y = waterLY - 100;
             bullet.vy = -400.0f;
             bullets.add(bullet);
         }
@@ -219,7 +302,7 @@ public class TableShooterStage extends Stage
         }
 
         float boatWidth = 200.0f;
-        float width = game.width * 0.6f - boatWidth;
+        float width = waterHX - boatWidth;
         if (boatX < 0) boatX = 0;
         if (boatX > width) boatX = width;
     }
@@ -227,13 +310,6 @@ public class TableShooterStage extends Stage
     @Override
     public void render(Graphics2D g)
     {
-        int waterLX = 0;
-        int waterLY = (int)(game.height * 0.7);
-        int waterHX = (int)(game.width * 0.6);
-        int waterHY = game.height;
-        int waterW = waterHX - waterLX;
-        int sideW = game.width - waterW;
-
         g.setColor(new Color(0x73C2FB));
         g.fillRect(waterLX, 0, waterW, game.height);
         
@@ -289,19 +365,66 @@ public class TableShooterStage extends Stage
             for (int j = 1; j <= 10; j++)
             {
                 float y = columnSize + j * columnSize;
+                int lineY = (int)(y - columnSize * 0.8);
+
                 if (i == 1)
                 {
                     GraphicsHelper.drawString(g, font, j + "", waterHX + sideW / 22f, y, 0.5f, Color.GRAY);
 
-                    int lineY = (int)(y - columnSize * 0.8);
                     g.drawLine(waterHX + 10, lineY, game.width - 10, lineY);
                 }
+
+                /*if (tablePlacedIncorrectly[(j - 1) * 10 + (i - 1)])
+                {
+                    g.setColor(new Color(0xFA/255.0f, 0x80/255.0f, 0x72/255.0f, 0.5f));
+                    g.fillRect(lineX, lineY, (int) columnSize, (int) columnSize);
+                }*/
                 
                 if (table[(j - 1) * 10 + (i - 1)])
                 {
                     GraphicsHelper.drawString(g, smallFont, i * j + "", x, y - 7, 0.5f, Color.WHITE);
                 }
+                else
+                {
+                    if (dragging)
+                    {
+                        if (i == draggingTableX && j == draggingTableY)
+                        {
+                            g.setColor(new Color(0x87/255.0f, 0xCE/255.0f, 0xEB/255.0f, 0.5f));
+                            g.fillRect(lineX, lineY, (int) columnSize, (int) columnSize);
+    
+                            if (Input.isLeftMousePressed())
+                            {
+                                if (draggingNumber != i * j)
+                                {
+                                    tablePlacedIncorrectly[(i - 1) * 10 + (j - 1)] = true;
+                                    tablePlacedIncorrectly[(j - 1) * 10 + (i - 1)] = true;
+                                }
+                                else
+                                {
+                                    dragging = false;
+                                    table[(i - 1) * 10 + (j - 1)] = true;
+                                    table[(j - 1) * 10 + (i - 1)] = true;
+                                }
+                            }
+                        }
+                        
+                        if (j == draggingTableX && i == draggingTableY && i != j)
+                        {
+                            g.setColor(new Color(0xFB/255.0f, 0xCE/255.0f, 0xB1/255.0f, 0.5f));
+                            g.fillRect(lineX, lineY, (int) columnSize, (int) columnSize);
+                        }
+                    }
+                }
             }
+        }
+        
+
+        if (dragging)
+        {
+            float colorFlash = ((float) Math.sin(game.secondsSinceStart * 10.0f) * 0.5f + 0.5f) * 0.2f + 0.8f;
+            Color color = new Color(1.0f, colorFlash, 0.0f, 1.0f);
+            GraphicsHelper.drawString(g, smallFont, draggingNumber + "", Input.mouseX, Input.mouseY, 0.5f, color);
         }
     }
 }

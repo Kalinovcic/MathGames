@@ -25,6 +25,8 @@ public class Game extends Canvas
     {
         Input input = new Input();
         addKeyListener(input);
+        addMouseListener(input);
+        addMouseMotionListener(input);
     }
     
     public List<Particle> particles = new ArrayList<Particle>();
