@@ -23,6 +23,8 @@ public class SumStage extends Stage
     public boolean hasError = false;
     public boolean completed = false;
     
+    public ParticleEmitter backgroundEmitter;
+    
     public SumStage(Game game, int numberA, int numberB, boolean correct)
     {
         super(game);
@@ -34,6 +36,8 @@ public class SumStage extends Stage
         this.stringB = "" + numberB;
         this.stringC = "";
         this.stringC2 = "" + (numberA + numberB);
+        
+        backgroundEmitter = new ParticleEmitter(game);
     }
     
     @Override
@@ -64,11 +68,16 @@ public class SumStage extends Stage
 
             completed = stringC.equals(stringC2);
         }
+        
+        backgroundEmitter.spawnBackgroundParticles(dt);
+        backgroundEmitter.updateParticles(dt);
     }
     
     @Override
     public void render(Graphics2D g)
     {
+        backgroundEmitter.renderParticles(g);
+        
         Font font = Art.FONT.deriveFont(300.0f);
         FontMetrics metrics = g.getFontMetrics(font);
         float lineHeight = metrics.getHeight() * 0.7f;

@@ -5,7 +5,6 @@ import java.awt.Graphics2D;
 public abstract class Stage
 {
     public Game game;
-    public boolean isOpaque = false;
     
     public Stage(Game game)
     {

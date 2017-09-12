@@ -1,5 +1,6 @@
 package net.kalinovcic.mathgame;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -86,11 +87,14 @@ public class TableShooterStage extends Stage
             }
             
             if (y < 0) dead = true;
+
+            particleEmitter.spawnSparks(2, x, y,
+                    100, 240, 50, 100, 10, 0.4f, 0.05f, 0.15f, 1.0f);
         }
         
         void render(Graphics2D g)
         {
-            g.setColor(Color.WHITE);
+            g.setColor(Color.YELLOW);
             g.fillOval((int)(x - 10), (int)(y - 10), 20, 20);
         }
     }
@@ -102,10 +106,11 @@ public class TableShooterStage extends Stage
     private boolean[] table = new boolean[100];
     private boolean[] tablePlacedIncorrectly = new boolean[100];
     
+    public ParticleEmitter particleEmitter;
+    
     public TableShooterStage(Game game)
     {
         super(game);
-        this.isOpaque = true;
 
         {
             for (int x = 1; x <= 10; x++)
@@ -150,6 +155,8 @@ public class TableShooterStage extends Stage
             numbersToDrop.set(x, b);
             numbersToDrop.set(y, a);
         }
+        
+        particleEmitter = new ParticleEmitter(game);
     }
     
     private float numberSpawnCounter = 0;
@@ -170,9 +177,14 @@ public class TableShooterStage extends Stage
     private int draggingTableX;
     private int draggingTableY;
     
+    private float totalTime = 0;
+    private boolean completed = false;
+    
     @Override
     public void update(float dt)
     {
+        if (!completed) totalTime += dt;
+        
         waterLX = 0;
         waterLY = (int)(game.height * 0.7);
         waterHX = (int)(game.width * 0.6);
@@ -297,6 +309,19 @@ public class TableShooterStage extends Stage
             boatX += 500.0f * move * dt;
             boatRotationTime += 8.0 * dt;
             boatFacingRight = move > 0.0f;
+
+            if (move > 0)
+            {
+                particleEmitter.spawnSparks(1,
+                        boatX, waterLY,
+                        0, 50, 50, 100, 10, 1.0f, 0.5f, 0.6f, 0.5f);
+            }
+            else
+            {
+                particleEmitter.spawnSparks(1,
+                        boatX + 200, waterLY,
+                        -50, 0, 50, 100, 10, 1.0f, 0.5f, 0.6f, 0.5f);
+            }
         }
         else
         {
@@ -307,6 +332,28 @@ public class TableShooterStage extends Stage
         float width = waterHX - boatWidth;
         if (boatX < 0) boatX = 0;
         if (boatX > width) boatX = width;
+        
+        
+        completed = fallingNumbers.size() == 0 && numbersToDrop.size() == 0 && !dragging;
+        if (completed)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                particleEmitter.spawnSparks(1,
+                        waterW * (i + 0.5f) / 4.0f, waterLY + 30,
+                        -10, 10, 200, 250, 10, 3, 0.5f, 0.6f, 0.5f);
+            }
+            
+            if (game.random.nextInt(50) == 0)
+            {
+                float hue = game.random.nextFloat() * 0.6f;
+                particleEmitter.spawnSparks(200,
+                        game.random.nextFloat() * waterW, game.random.nextFloat() * waterLY * 0.7f,
+                        0, 360, 10, 250, 10, 1, hue, hue + 0.1f, 1.0f);
+            }
+        }
+        
+        particleEmitter.updateParticles(dt);
     }
     
     @Override
@@ -314,7 +361,10 @@ public class TableShooterStage extends Stage
     {
         g.setColor(new Color(0x73C2FB));
         g.fillRect(waterLX, 0, waterW, game.height);
-        
+
+        particleEmitter.renderParticles(g);
+        g.setComposite(AlphaComposite.SrcOver.derive(1.0f));
+
         Polygon path = new Polygon();
         path.addPoint(waterHX, waterHY);
         path.addPoint(waterLX, waterHY);
@@ -333,7 +383,7 @@ public class TableShooterStage extends Stage
         
         for (Bullet bullet : bullets)
             bullet.render(g);
-        
+
         
 
         g.setColor(Color.DARK_GRAY);
@@ -420,6 +470,13 @@ public class TableShooterStage extends Stage
                 }
             }
         }
+
+        int sec = (int) Math.ceil(totalTime);
+        int min = sec / 60;
+        sec %= 60;
+        String timeString = sec + "";
+        if (min != 0) timeString = min + ":" + timeString;
+        GraphicsHelper.drawString(g, font, timeString, waterHX + 40, sideW + 100, 0.0f, Color.WHITE);
         
 
         if (dragging)
