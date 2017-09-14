@@ -105,7 +105,7 @@ public class SumStage extends Stage
             return;
         
         int lineCount = currentTask.numbers.length + 1;
-        float fontSize = game.height / (float) lineCount * 0.7f;
+        float fontSize = game.height / (float) lineCount * 0.65f;
 
         Font font = Art.FONT.deriveFont(fontSize);
         FontMetrics metrics = g.getFontMetrics(font);

@@ -19,6 +19,7 @@ public class Game extends Canvas
 
     public Random random = new Random();
 
+    // public Stage stage = new TableShooterStage(this);
     public Stage stage = new SumStage(this, new Task[]
     {
         new Task(new int[] { 498765, 37182 }, false),
@@ -67,6 +68,9 @@ public class Game extends Canvas
 
         width = getWidth();
         height = getHeight();
+        
+        if (width < 50) width = 50;
+        if (height < 50) height = 50;
         
         Graphics2D g = (Graphics2D) bs.getDrawGraphics();
 
